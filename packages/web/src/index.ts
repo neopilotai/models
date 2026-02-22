@@ -162,6 +162,8 @@ function filterTable(value: string) {
     "table tbody tr"
   ) as NodeListOf<HTMLTableRowElement>;
 
+  let visibleCount = 0;
+
   rows.forEach((row) => {
     const cellTexts = Array.from(row.cells).map((cell) =>
       cell.textContent!.toLowerCase()
@@ -170,8 +172,10 @@ function filterTable(value: string) {
       lowerCaseValues.some((lowerCaseValue) => cellTexts.some((text) => text.includes(lowerCaseValue)));
     
     if (isVisible) {
+      visibleCount++;
       row.style.display = "";
       row.style.opacity = "1";
+      row.style.transition = "opacity 0.2s ease";
     } else {
       row.style.transition = "opacity 0.15s ease";
       row.style.opacity = "0.3";
@@ -186,6 +190,18 @@ function filterTable(value: string) {
 
   updateQueryParams({ search: value || null });
 }
+
+// Search input with keyboard shortcuts
+search.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") {
+    search.value = "";
+    filterTable("");
+  }
+});
+
+search.addEventListener("input", (e) => {
+  filterTable((e.target as HTMLInputElement).value);
+});
 
 search.addEventListener("input", () => {
   filterTable(search.value);
@@ -237,6 +253,182 @@ search.addEventListener("keydown", (e) => {
     console.error("Failed to copy text: ", err);
   }
 };
+
+///////////////////////////////////
+// Handle Model Details Drawer
+///////////////////////////////////
+const drawer = document.getElementById("drawer") as HTMLElement;
+const drawerTitle = document.getElementById("drawer-title") as HTMLElement;
+const drawerContent = document.getElementById("drawer-content") as HTMLElement;
+let lastSelectedRow: HTMLTableRowElement | null = null;
+
+(window as any).openDrawer = (modelId: string, providerId: string, modelName: string) => {
+  drawerTitle.textContent = modelName;
+  
+  // Find the model data from table
+  const rows = document.querySelectorAll("table tbody tr");
+  let modelRow: HTMLTableRowElement | null = null;
+  
+  rows.forEach((row) => {
+    const cells = row.cells;
+    if (cells[4].textContent?.trim() === modelId) {
+      modelRow = row as HTMLTableRowElement;
+    }
+  });
+
+  // Update selection state
+  if (lastSelectedRow && lastSelectedRow !== modelRow) {
+    lastSelectedRow.classList.remove("selected");
+  }
+  if (modelRow) {
+    modelRow.classList.add("selected");
+    lastSelectedRow = modelRow;
+  }
+
+  if (modelRow) {
+    const cells = modelRow.cells;
+    const provider = cells[0].textContent?.trim() || "Unknown";
+    const family = cells[2].textContent?.trim() || "-";
+    const toolCall = cells[5].textContent?.trim() === "Yes";
+    const reasoning = cells[6].textContent?.trim() === "Yes";
+    const inputCost = cells[8].textContent?.trim() || "-";
+    const outputCost = cells[9].textContent?.trim() || "-";
+    const contextLimit = cells[15].textContent?.trim() || "-";
+    const structuredOutput = cells[19].textContent?.trim() || "-";
+    const openWeights = cells[21].textContent?.trim() || "-";
+    const releaseDate = cells[23].textContent?.trim() || "-";
+
+    drawerContent.innerHTML = `
+      <div class="drawer-section">
+        <div class="drawer-section-title">Provider</div>
+        <div class="drawer-section-content">
+          <p>${provider}</p>
+        </div>
+      </div>
+
+      ${family !== "-" ? `<div class="drawer-section">
+        <div class="drawer-section-title">Family</div>
+        <div class="drawer-section-content">
+          <p>${family}</p>
+        </div>
+      </div>` : ''}
+
+      <div class="drawer-section">
+        <div class="drawer-section-title">Capabilities</div>
+        <div class="drawer-section-content" style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+          ${toolCall ? '<span class="capability-badge tool-call">✓ Tool Calling</span>' : ''}
+          ${reasoning ? '<span class="capability-badge reasoning">✓ Reasoning</span>' : ''}
+          <span class="capability-badge vision">✓ Vision</span>
+          <span class="capability-badge audio">✓ Audio</span>
+        </div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-section-title">Pricing (per 1M tokens)</div>
+        <div class="drawer-section-content">
+          <p><span style="color: var(--color-text-tertiary);">Input:</span> <strong>${inputCost}</strong></p>
+          <p><span style="color: var(--color-text-tertiary);">Output:</span> <strong>${outputCost}</strong></p>
+        </div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-section-title">Specifications</div>
+        <div class="drawer-section-content">
+          <p><span style="color: var(--color-text-tertiary);">Context:</span> <strong>${contextLimit}</strong></p>
+          <p><span style="color: var(--color-text-tertiary);">Structured Output:</span> <strong>${structuredOutput}</strong></p>
+          <p><span style="color: var(--color-text-tertiary);">Open Weights:</span> <strong>${openWeights}</strong></p>
+          ${releaseDate !== "-" ? `<p><span style="color: var(--color-text-tertiary);">Released:</span> <strong>${releaseDate}</strong></p>` : ''}
+        </div>
+      </div>
+
+      <div class="drawer-section">
+        <div class="drawer-code-block">import Anthropic from "@anthropic-ai/sdk";
+
+const client = new Anthropic();
+const message = await client.messages.create({
+  model: "${modelId}",
+  max_tokens: 1024,
+  messages: [
+    { role: "user", content: "Hello, world!" },
+  ],
+});
+        </div>
+      </div>
+
+      <div class="drawer-section" style="display: flex; flex-direction: column; gap: 0.5rem;">
+        <button onclick="copyModelId(null, '${modelId}')" class="drawer-button-group" style="margin: 0;">
+          <button class="primary" style="width: 100%;">Copy Model ID</button>
+        </button>
+      </div>
+    `;
+  }
+
+  // Animate drawer open
+  drawer.classList.add("active");
+};
+
+(window as any).closeDrawer = () => {
+  drawer.classList.remove("active");
+  drawerContent.innerHTML = '<p>Select a model to view details</p>';
+  
+  // Clear selection
+  if (lastSelectedRow) {
+    lastSelectedRow.classList.remove("selected");
+    lastSelectedRow = null;
+  }
+};
+
+///////////////////////////////////
+// Handle Sidebar Filters
+///////////////////////////////////
+const filterCheckboxes = document.querySelectorAll(".filter-item input[type='checkbox']");
+const activeFilters = {
+  toolCall: false,
+  reasoning: false,
+  vision: false,
+  audio: false,
+  free: false,
+};
+
+filterCheckboxes.forEach((checkbox) => {
+  checkbox.addEventListener("change", () => {
+    // Update active filters
+    if (checkbox.id === "filter-tool-call") activeFilters.toolCall = (checkbox as HTMLInputElement).checked;
+    if (checkbox.id === "filter-reasoning") activeFilters.reasoning = (checkbox as HTMLInputElement).checked;
+    if (checkbox.id === "filter-vision") activeFilters.vision = (checkbox as HTMLInputElement).checked;
+    if (checkbox.id === "filter-audio") activeFilters.audio = (checkbox as HTMLInputElement).checked;
+    if (checkbox.id === "filter-free") activeFilters.free = (checkbox as HTMLInputElement).checked;
+
+    // Apply filters to table
+    applyFilters();
+  });
+});
+
+function applyFilters() {
+  const rows = document.querySelectorAll("table tbody tr");
+  
+  rows.forEach((row) => {
+    const cells = row.cells;
+    const toolCall = cells[5].textContent?.trim() === "Yes";
+    const reasoning = cells[6].textContent?.trim() === "Yes";
+    let isVisible = true;
+
+    // Check capabilities filters
+    if (activeFilters.toolCall && !toolCall) isVisible = false;
+    if (activeFilters.reasoning && !reasoning) isVisible = false;
+
+    // Update row visibility with animation
+    if (!isVisible) {
+      (row as HTMLElement).style.opacity = "0.3";
+      (row as HTMLElement).style.pointerEvents = "none";
+      (row as HTMLElement).style.display = "none";
+    } else {
+      (row as HTMLElement).style.opacity = "1";
+      (row as HTMLElement).style.pointerEvents = "auto";
+      (row as HTMLElement).style.display = "";
+    }
+  });
+}
 
 ///////////////////////////////////
 // Initialize State from URL
