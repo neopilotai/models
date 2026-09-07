@@ -1204,7 +1204,7 @@ header {
   }
 }
 
-@media (max-width: 768px) {
+`@media` (max-width: 768px) {
   :root {
     --sidebar-width: 0;
     --drawer-width: 100%;
@@ -1217,7 +1217,7 @@ header {
   .drawer {
     width: 100%;
     position: fixed;
-    transform: translateX(100%);
+    transform: translateY(100%);
     bottom: 0;
     top: auto;
     height: 80vh;
@@ -1227,7 +1227,7 @@ header {
   }
 
   .drawer.active {
-    animation: slideUp 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    transform: translateY(0);
   }
 
   header {
