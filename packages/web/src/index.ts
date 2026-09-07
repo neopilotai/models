@@ -411,11 +411,24 @@ function applyFilters() {
     const cells = row.cells;
     const toolCall = cells[5].textContent?.trim() === "Yes";
     const reasoning = cells[6].textContent?.trim() === "Yes";
+    const inputModalities = cells[7]?.querySelectorAll(".modality-icon") || [];
+    const hasVision = Array.from(inputModalities).some(
+      (icon) => icon.getAttribute("data-tooltip") === "Image"
+    );
+    const hasAudio = Array.from(inputModalities).some(
+      (icon) => icon.getAttribute("data-tooltip") === "Audio"
+    );
+    const inputCost = cells[9]?.textContent?.trim();
+    const outputCost = cells[10]?.textContent?.trim();
+    const isFree = inputCost === "-" && outputCost === "-";
     let isVisible = true;
 
     // Check capabilities filters
     if (activeFilters.toolCall && !toolCall) isVisible = false;
     if (activeFilters.reasoning && !reasoning) isVisible = false;
+    if (activeFilters.vision && !hasVision) isVisible = false;
+    if (activeFilters.audio && !hasAudio) isVisible = false;
+    if (activeFilters.free && !isFree) isVisible = false;
 
     // Update row visibility with animation
     if (!isVisible) {
