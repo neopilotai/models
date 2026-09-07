@@ -382,11 +382,6 @@ tbody {
     transition: color 0.2s ease;
   }
 }
-  }
-
-  td {
-    color: var(--color-text-tertiary);
-  }
 
   td:nth-child(1) {
     font-weight: 500;
