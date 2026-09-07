@@ -181,6 +181,7 @@ const renderCost = (cost?: number) => {
 
 export const Rendered = renderToString(
   <Fragment>
+    <div class="dashboard-container">
     <header>
       <div class="left">
         <h1>Neopilot Models</h1>
@@ -213,7 +214,50 @@ export const Rendered = renderToString(
         <button id="help">How to use</button>
       </div>
     </header>
-    <table>
+    
+    <div class="dashboard-main">
+      {/* Left Sidebar - Filters */}
+      <aside class="sidebar">
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Provider</div>
+          <div class="filter-item">
+            <input type="checkbox" id="filter-all" checked />
+            <label for="filter-all">All Providers</label>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Capabilities</div>
+          <div class="filter-item">
+            <input type="checkbox" id="filter-tool-call" />
+            <label for="filter-tool-call">Tool Calling</label>
+          </div>
+          <div class="filter-item">
+            <input type="checkbox" id="filter-reasoning" />
+            <label for="filter-reasoning">Reasoning</label>
+          </div>
+          <div class="filter-item">
+            <input type="checkbox" id="filter-vision" />
+            <label for="filter-vision">Vision</label>
+          </div>
+          <div class="filter-item">
+            <input type="checkbox" id="filter-audio" />
+            <label for="filter-audio">Audio</label>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <div class="sidebar-section-title">Pricing</div>
+          <div class="filter-item">
+            <input type="checkbox" id="filter-free" />
+            <label for="filter-free">Free Models</label>
+          </div>
+        </div>
+      </aside>
+
+      {/* Center - Main Table */}
+      <div class="table-wrapper">
+        <table>
       <thead>
         <tr>
           <th class="sortable" data-type="text">
@@ -354,7 +398,7 @@ export const Rendered = renderToString(
                 modelA.name.localeCompare(modelB.name)
               )
               .map(([modelId, model]) => (
-                <tr key={`${providerId}-${modelId}`}>
+                <tr key={`${providerId}-${modelId}`} onclick={`openDrawer('${modelId}', '${providerId}', '${model.name.replace(/'/g, "\\'")}')`} style="cursor: pointer;">
                   <td>
                     <div class="provider-cell">
                       {renderProviderLogo(providerId)}
@@ -455,7 +499,26 @@ export const Rendered = renderToString(
               ))
           )}
       </tbody>
-    </table>
+        </table>
+      </div>
+
+      {/* Right - Details Drawer */}
+      <div class="drawer" id="drawer">
+        <div class="drawer-header">
+          <h2 id="drawer-title">Model Details</h2>
+          <button onclick="closeDrawer()" aria-label="Close drawer">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
+        </div>
+        <div class="drawer-content" id="drawer-content">
+          <p>Select a model to view details</p>
+        </div>
+      </div>
+    </div>
+
     <dialog id="modal">
       <div class="header">
         <h2>How to use</h2>
@@ -570,5 +633,6 @@ export const Rendered = renderToString(
         </a>
       </div>
     </dialog>
+    </div>
   </Fragment>
 );
